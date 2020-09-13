@@ -16,14 +16,8 @@ var once sync.Once
 type gorilla struct {
 	url    url.URL
 	header http.Header
-
-	resCh chan []byte
-	finCh chan struct{}
-
-	conn *websocket.Conn
-	ctx  context.Context
-
-	finErr error
+	conn   *websocket.Conn
+	doneCh chan error
 }
 
 func (g *gorilla) Conn(ctx context.Context) (func() error, error) {
@@ -31,23 +25,9 @@ func (g *gorilla) Conn(ctx context.Context) (func() error, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	//some initial assignments
 	g.conn = conn
-	var cancelF context.CancelFunc
-	g.ctx, cancelF = context.WithCancel(ctx)
 
 	return func() error {
-		//shutting down reading
-		cancelF()
-
-		//unsubscribing
-		err := g.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-		if err != nil {
-			g.finErr = fmt.Errorf("write error: %w", err)
-		}
-
-		//closing connection
 		return g.conn.Close()
 	}, nil
 }
@@ -72,38 +52,36 @@ func (g *gorilla) Write(subscribeMsgB []byte) (i int, err error) {
 	return
 }
 
-func (g *gorilla) handling() {
-	defer close(g.finCh)
+func (g *gorilla) unsubscribe() {
+	g.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+}
+
+func (g *gorilla) handle(ctx context.Context, res chan []byte) {
+	defer g.unsubscribe()
+
 handleLoop:
 	for {
 		select {
-		case <-g.ctx.Done():
+		case <-ctx.Done():
+			g.doneCh <- ctx.Err()
 			break handleLoop
 		default:
 			_, message, err := g.conn.ReadMessage()
 			if err != nil {
-				g.finErr = fmt.Errorf("read error: %w", err)
+				g.doneCh <- fmt.Errorf("read error: %w", err)
 				break handleLoop
 			}
-			g.resCh <- message
+			res <- message
 		}
 	}
 }
 
-func (g *gorilla) Data() <-chan []byte {
-	once.Do(func() {
-		//handling func must be executed only once
-		//because of closing of the signal channel
-		go g.handling()
-	})
-
-	return g.resCh
+func (g *gorilla) Handle(ctx context.Context) <-chan []byte {
+	res := make(chan []byte)
+	go g.handle(ctx, res)
+	return res
 }
 
-func (g *gorilla) Done() <-chan struct{} {
-	return g.finCh
-}
-
-func (g *gorilla) Err() error {
-	return g.finErr
+func (g *gorilla) Done() <-chan error {
+	return g.doneCh
 }

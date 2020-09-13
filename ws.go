@@ -20,14 +20,11 @@ type Handler interface {
 	//Write writes binary messages to the socket
 	Write([]byte) (int, error)
 
-	//Data returns a channel from where the results are being read
-	Data() <-chan []byte
+	//Handle returns a channel from where the binary results are being read
+	Handle(ctx context.Context) <-chan []byte
 
-	//Err holds any error the Handler has when finished its work
-	Err() error
-
-	//Done returns a channel signaling about Handler's halt
-	Done() <-chan struct{}
+	//Done returns a channel signaling about Handler's halt and its reason
+	Done() <-chan error
 }
 
 //New is a constructor function masking web socket realization
@@ -35,7 +32,5 @@ func New(cnf Config) Handler {
 	return &gorilla{
 		url:    cnf.URL,
 		header: cnf.Header,
-		resCh:  make(chan []byte),
-		finCh:  make(chan struct{}),
 	}
 }
