@@ -17,6 +17,7 @@ type gorilla struct {
 	conn   *websocket.Conn
 	ctx    context.Context
 	resCh  chan []byte
+	finCh  chan struct{}
 	finErr error
 }
 
@@ -60,6 +61,7 @@ func (g *gorilla) Write(subscribeMsgB []byte) (i int, err error) {
 
 func (g *gorilla) Data() <-chan []byte {
 	g.resCh = make(chan []byte)
+	g.finCh = make(chan struct{})
 
 	go func() {
 	handleLoop:
@@ -77,9 +79,14 @@ func (g *gorilla) Data() <-chan []byte {
 			}
 		}
 		close(g.resCh)
+		close(g.finCh)
 	}()
 
 	return g.resCh
+}
+
+func (g *gorilla) Done() <-chan struct{} {
+	return g.finCh
 }
 
 func (g *gorilla) Err() error {

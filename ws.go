@@ -25,6 +25,9 @@ type Handler interface {
 
 	//Err holds any error the Handler has when finished its work
 	Err() error
+
+	//Done returns a channel signaling about Handler's halt
+	Done() <-chan struct{}
 }
 
 //New is a constructor function masking web socket realization
