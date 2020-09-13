@@ -34,13 +34,20 @@ func (g *gorilla) Conn(ctx context.Context) (func() error, error) {
 
 	//some initial assignments
 	g.conn = conn
-	g.ctx = ctx
+	var cancelF context.CancelFunc
+	g.ctx, cancelF = context.WithCancel(ctx)
 
 	return func() error {
+		//shutting down reading
+		cancelF()
+
+		//unsubscribing
 		err := g.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
 		if err != nil {
 			g.finErr = fmt.Errorf("write error: %w", err)
 		}
+
+		//closing connection
 		return g.conn.Close()
 	}, nil
 }
@@ -66,6 +73,7 @@ func (g *gorilla) Write(subscribeMsgB []byte) (i int, err error) {
 }
 
 func (g *gorilla) handling() {
+	defer close(g.finCh)
 handleLoop:
 	for {
 		select {
@@ -80,15 +88,12 @@ handleLoop:
 			g.resCh <- message
 		}
 	}
-
-	close(g.resCh)
-	close(g.finCh)
 }
 
 func (g *gorilla) Data() <-chan []byte {
 	once.Do(func() {
 		//handling func must be executed only once
-		//because of the closing of the signal channels
+		//because of closing of the signal channel
 		go g.handling()
 	})
 
