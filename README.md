@@ -1,2 +1,2 @@
-# ws
-Simple web socket wrapper with mock and gorilla realization under the hood
+# WebSocket
+Simple WebSocket wrapper with mock and gorilla realization under the hood
