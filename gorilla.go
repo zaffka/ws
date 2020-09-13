@@ -6,12 +6,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"sync"
 
 	"github.com/gorilla/websocket"
 )
-
-var once sync.Once
 
 type gorilla struct {
 	url    url.URL
@@ -57,20 +54,22 @@ func (g *gorilla) unsubscribe() {
 }
 
 func (g *gorilla) handle(ctx context.Context, res chan []byte) {
+	defer close(g.doneCh)
 	defer g.unsubscribe()
 
 handleLoop:
 	for {
+		_, message, err := g.conn.ReadMessage()
+		if err != nil {
+			g.doneCh <- fmt.Errorf("read error: %w", err)
+			break handleLoop
+		}
+
 		select {
 		case <-ctx.Done():
 			g.doneCh <- ctx.Err()
 			break handleLoop
 		default:
-			_, message, err := g.conn.ReadMessage()
-			if err != nil {
-				g.doneCh <- fmt.Errorf("read error: %w", err)
-				break handleLoop
-			}
 			res <- message
 		}
 	}

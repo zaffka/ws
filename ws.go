@@ -23,7 +23,9 @@ type Handler interface {
 	//Handle returns a channel from where the binary results are being read
 	Handle(ctx context.Context) <-chan []byte
 
-	//Done returns a channel signaling about Handler's halt and its reason
+	//Done returns a channel signaling about Handler's halt
+	//The first error received is a halting reason
+	//After that channel will be closed and receive nil values
 	Done() <-chan error
 }
 
@@ -32,5 +34,6 @@ func New(cnf Config) Handler {
 	return &gorilla{
 		url:    cnf.URL,
 		header: cnf.Header,
+		doneCh: make(chan error, 1),
 	}
 }

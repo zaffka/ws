@@ -36,31 +36,33 @@ func (_m *Handler) Conn(_a0 context.Context) (func() error, error) {
 	return r0, r1
 }
 
-// DataChan provides a mock function with given fields:
-func (_m *Handler) DataChan() <-chan []byte {
+// Done provides a mock function with given fields:
+func (_m *Handler) Done() <-chan error {
 	ret := _m.Called()
 
-	var r0 <-chan []byte
-	if rf, ok := ret.Get(0).(func() <-chan []byte); ok {
+	var r0 <-chan error
+	if rf, ok := ret.Get(0).(func() <-chan error); ok {
 		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(<-chan []byte)
+			r0 = ret.Get(0).(<-chan error)
 		}
 	}
 
 	return r0
 }
 
-// Err provides a mock function with given fields:
-func (_m *Handler) Err() error {
-	ret := _m.Called()
+// Handle provides a mock function with given fields: ctx
+func (_m *Handler) Handle(ctx context.Context) <-chan []byte {
+	ret := _m.Called(ctx)
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func() error); ok {
-		r0 = rf()
+	var r0 <-chan []byte
+	if rf, ok := ret.Get(0).(func(context.Context) <-chan []byte); ok {
+		r0 = rf(ctx)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(<-chan []byte)
+		}
 	}
 
 	return r0
