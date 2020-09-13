@@ -35,5 +35,7 @@ func New(cnf Config) Handler {
 	return &gorilla{
 		url:    cnf.URL,
 		header: cnf.Header,
+		resCh:  make(chan []byte),
+		finCh:  make(chan struct{}),
 	}
 }

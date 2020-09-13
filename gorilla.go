@@ -6,18 +6,23 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sync"
 
 	"github.com/gorilla/websocket"
 )
+
+var once sync.Once
 
 type gorilla struct {
 	url    url.URL
 	header http.Header
 
-	conn   *websocket.Conn
-	ctx    context.Context
-	resCh  chan []byte
-	finCh  chan struct{}
+	resCh chan []byte
+	finCh chan struct{}
+
+	conn *websocket.Conn
+	ctx  context.Context
+
 	finErr error
 }
 
@@ -27,6 +32,7 @@ func (g *gorilla) Conn(ctx context.Context) (func() error, error) {
 		return nil, err
 	}
 
+	//some initial assignments
 	g.conn = conn
 	g.ctx = ctx
 
@@ -59,28 +65,32 @@ func (g *gorilla) Write(subscribeMsgB []byte) (i int, err error) {
 	return
 }
 
-func (g *gorilla) Data() <-chan []byte {
-	g.resCh = make(chan []byte)
-	g.finCh = make(chan struct{})
-
-	go func() {
-	handleLoop:
-		for {
-			select {
-			case <-g.ctx.Done():
+func (g *gorilla) handling() {
+handleLoop:
+	for {
+		select {
+		case <-g.ctx.Done():
+			break handleLoop
+		default:
+			_, message, err := g.conn.ReadMessage()
+			if err != nil {
+				g.finErr = fmt.Errorf("read error: %w", err)
 				break handleLoop
-			default:
-				_, message, err := g.conn.ReadMessage()
-				if err != nil {
-					g.finErr = fmt.Errorf("read error: %w", err)
-					break handleLoop
-				}
-				g.resCh <- message
 			}
+			g.resCh <- message
 		}
-		close(g.resCh)
-		close(g.finCh)
-	}()
+	}
+
+	close(g.resCh)
+	close(g.finCh)
+}
+
+func (g *gorilla) Data() <-chan []byte {
+	once.Do(func() {
+		//handling func must be executed only once
+		//because of the closing of the signal channels
+		go g.handling()
+	})
 
 	return g.resCh
 }
