@@ -12,6 +12,7 @@ import (
 
 type gorilla struct {
 	conn   *websocket.Conn
+	ctx    context.Context
 	finErr error
 	url    url.URL
 	header http.Header
@@ -24,6 +25,7 @@ func (g *gorilla) Conn(ctx context.Context) (func() error, error) {
 	}
 
 	g.conn = conn
+	g.ctx = ctx
 
 	return func() error {
 		err := g.conn.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
@@ -54,14 +56,14 @@ func (g *gorilla) Write(subscribeMsgB []byte) (i int, err error) {
 	return
 }
 
-func (g *gorilla) DataChan(ctx context.Context) <-chan []byte {
+func (g *gorilla) DataChan() <-chan []byte {
 	resChan := make(chan []byte)
 
 	go func() {
 	handleLoop:
 		for {
 			select {
-			case <-ctx.Done():
+			case <-g.ctx.Done():
 				break handleLoop
 			default:
 				_, message, err := g.conn.ReadMessage()

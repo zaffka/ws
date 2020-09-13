@@ -21,7 +21,7 @@ type Handler interface {
 	Write([]byte) (int, error)
 
 	//DataChan returns a channel from where the results are being read
-	DataChan(context.Context) <-chan []byte
+	DataChan() <-chan []byte
 
 	//Err holds any error the Handler has when finished its work
 	Err() error

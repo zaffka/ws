@@ -36,13 +36,13 @@ func (_m *Handler) Conn(_a0 context.Context) (func() error, error) {
 	return r0, r1
 }
 
-// DataChan provides a mock function with given fields: _a0
-func (_m *Handler) DataChan(_a0 context.Context) <-chan []byte {
-	ret := _m.Called(_a0)
+// DataChan provides a mock function with given fields:
+func (_m *Handler) DataChan() <-chan []byte {
+	ret := _m.Called()
 
 	var r0 <-chan []byte
-	if rf, ok := ret.Get(0).(func(context.Context) <-chan []byte); ok {
-		r0 = rf(_a0)
+	if rf, ok := ret.Get(0).(func() <-chan []byte); ok {
+		r0 = rf()
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(<-chan []byte)
