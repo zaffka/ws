@@ -20,8 +20,8 @@ type Handler interface {
 	//Write writes binary messages to the socket
 	Write([]byte) (int, error)
 
-	//DataChan returns a channel from where the results are being read
-	DataChan() <-chan []byte
+	//Data returns a channel from where the results are being read
+	Data() <-chan []byte
 
 	//Err holds any error the Handler has when finished its work
 	Err() error
