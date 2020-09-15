@@ -2,14 +2,12 @@ package ws
 
 import (
 	"context"
-	"net/http"
-	"net/url"
 )
 
-//Config is a struct holding params needed to configure ws realization
-type Config struct {
-	URL    url.URL
-	Header http.Header
+//Configurer is an interface returning params needed to configure ws realization
+type Configurer interface {
+	URL() string
+	Header() map[string][]string
 }
 
 //Handler interface is a simplified wrapper for the ws realization
@@ -30,10 +28,9 @@ type Handler interface {
 }
 
 //New is a constructor function masking web socket realization
-func New(cnf Config) Handler {
+func New(cnf Configurer) Handler {
 	return &gorilla{
-		url:    cnf.URL,
-		header: cnf.Header,
-		doneCh: make(chan error, 1),
+		Configurer: cnf,
+		doneCh:     make(chan error, 1),
 	}
 }

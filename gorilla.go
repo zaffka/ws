@@ -4,21 +4,18 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
-	"net/url"
 
 	"github.com/gorilla/websocket"
 )
 
 type gorilla struct {
-	url    url.URL
-	header http.Header
+	Configurer
 	conn   *websocket.Conn
 	doneCh chan error
 }
 
 func (g *gorilla) Conn(ctx context.Context) (func() error, error) {
-	conn, _, err := websocket.DefaultDialer.DialContext(ctx, g.url.String(), g.header)
+	conn, _, err := websocket.DefaultDialer.DialContext(ctx, g.URL(), g.Header())
 	if err != nil {
 		return nil, err
 	}
